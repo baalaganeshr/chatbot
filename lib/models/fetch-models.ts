@@ -59,7 +59,7 @@ export const fetchOllamaModels = async () => {
     )
 
     if (!response.ok) {
-      throw new Error(`Ollama server is not responding.`)
+      throw new Error("Ollama server is not responding.")
     }
 
     const data = await response.json()
@@ -75,7 +75,7 @@ export const fetchOllamaModels = async () => {
 
     return localModels
   } catch (error) {
-    console.warn("Error fetching Ollama models: " + error)
+    throw new Error("Error fetching Ollama models: " + error)
   }
 }
 
