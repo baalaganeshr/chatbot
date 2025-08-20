@@ -57,6 +57,15 @@ export async function POST(request: Request) {
     } else if (errorMessage.toLowerCase().includes("incorrect api key")) {
       errorMessage =
         "Custom API Key is incorrect. Please fix it in your profile settings."
+    } else if (error.code === "ECONNREFUSED") {
+      errorMessage =
+        "Connection refused. Please check if your local model server is running and the port is correct."
+    } else if (errorCode === 404) {
+      errorMessage =
+        "Model not found. Please check if you have the correct model name and if it's available on the server."
+    } else if (errorCode === 500) {
+      errorMessage =
+        "Internal server error. The model server may be experiencing issues. Please try again later."
     }
 
     return new Response(JSON.stringify({ message: errorMessage }), {
