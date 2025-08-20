@@ -46,6 +46,8 @@ interface ChatbotUIContext {
   setAvailableHostedModels: Dispatch<SetStateAction<LLM[]>>
   availableLocalModels: LLM[]
   setAvailableLocalModels: Dispatch<SetStateAction<LLM[]>>
+  isOllamaRunning: boolean
+  setIsOllamaRunning: Dispatch<SetStateAction<boolean>>
   availableOpenRouterModels: OpenRouterLLM[]
   setAvailableOpenRouterModels: Dispatch<SetStateAction<OpenRouterLLM[]>>
 
@@ -172,6 +174,8 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setAvailableHostedModels: () => {},
   availableLocalModels: [],
   setAvailableLocalModels: () => {},
+  isOllamaRunning: false,
+  setIsOllamaRunning: () => {},
   availableOpenRouterModels: [],
   setAvailableOpenRouterModels: () => {},
 
