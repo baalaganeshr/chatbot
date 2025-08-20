@@ -13,6 +13,7 @@ import {
   IconMoodSmile,
   IconPencil
 } from "@tabler/icons-react"
+import { motion } from "framer-motion"
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { ModelIcon } from "../models/model-icon"
@@ -180,7 +181,7 @@ export const Message: FC<MessageProps> = ({
   }, fileAccumulator)
 
   return (
-    <div
+    <motion.div
       className={cn(
         "flex w-full justify-center",
         message.role === "user" ? "" : "bg-secondary"
@@ -188,6 +189,9 @@ export const Message: FC<MessageProps> = ({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onKeyDown={handleKeyDown}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
     >
       <div className="relative flex w-full flex-col p-6 sm:w-[550px] sm:px-0 md:w-[650px] lg:w-[650px] xl:w-[700px]">
         <div className="absolute right-5 top-7 sm:right-0">

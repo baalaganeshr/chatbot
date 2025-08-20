@@ -1,6 +1,7 @@
 import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/supabase/types"
 import { ContentType } from "@/types"
+import { IconX } from "@tabler/icons-react"
 import { FC, useContext } from "react"
 import { SIDEBAR_WIDTH } from "../ui/dashboard"
 import { TabsContent } from "../ui/tabs"
@@ -11,9 +12,14 @@ import { SidebarContent } from "./sidebar-content"
 interface SidebarProps {
   contentType: ContentType
   showSidebar: boolean
+  setShowSidebar: (showSidebar: boolean) => void
 }
 
-export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
+export const Sidebar: FC<SidebarProps> = ({
+  contentType,
+  showSidebar,
+  setShowSidebar
+}) => {
   const {
     folders,
     chats,
@@ -60,10 +66,28 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
       }}
       value={contentType}
     >
-      <div className="flex h-full flex-col p-3">
-        <div className="flex items-center border-b-2 pb-2">
+      {showSidebar && (
+        <div className="bg-background/50 absolute inset-0 z-10 sm:hidden" />
+      )}
+      <div
+        className={cn(
+          "bg-background absolute inset-y-0 left-0 z-20 flex h-full flex-col p-3 transition-all duration-200 sm:relative",
+          showSidebar ? "w-[300px]" : "w-0"
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center border-b-2 pb-2",
+            showSidebar ? "flex" : "hidden"
+          )}
+        >
+          <button
+            className="absolute right-[-30px] top-[50%] z-30"
+            onClick={() => setShowSidebar(false)}
+          >
+            <IconX />
+          </button>
           <WorkspaceSwitcher />
-
           <WorkspaceSettings />
         </div>
 

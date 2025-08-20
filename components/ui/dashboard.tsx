@@ -7,7 +7,7 @@ import { Tabs } from "@/components/ui/tabs"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { cn } from "@/lib/utils"
 import { ContentType } from "@/types"
-import { IconChevronCompactRight } from "@tabler/icons-react"
+import { IconMenu2, IconChevronCompactRight } from "@tabler/icons-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { FC, useState } from "react"
 import { useSelectFileHandler } from "../chat/chat-hooks/use-select-file-handler"
@@ -93,32 +93,32 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
           >
             <SidebarSwitcher onContentTypeChange={setContentType} />
 
-            <Sidebar contentType={contentType} showSidebar={showSidebar} />
+            <Sidebar
+              contentType={contentType}
+              showSidebar={showSidebar}
+              setShowSidebar={setShowSidebar}
+            />
           </Tabs>
         )}
       </div>
 
-      <div
-        className="bg-muted/50 relative flex w-screen min-w-[90%] grow flex-col sm:min-w-fit"
-        onDrop={onFileDrop}
-        onDragOver={onDragOver}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-      >
-        {isDragging ? (
-          <div className="flex h-full items-center justify-center bg-black/50 text-2xl text-white">
-            drop file here
-          </div>
-        ) : (
-          children
-        )}
+      <div className="bg-muted/50 relative flex w-screen min-w-[90%] grow flex-col sm:min-w-fit">
+        <Button
+          className="absolute left-2 top-2 z-10 sm:hidden"
+          variant="ghost"
+          size="icon"
+          onClick={handleToggleSidebar}
+        >
+          <IconMenu2 />
+        </Button>
+
+        {children}
 
         <Button
           className={cn(
-            "absolute left-[4px] top-[50%] z-10 size-[32px] cursor-pointer"
+            "absolute left-[4px] top-[50%] z-10 hidden size-[32px] cursor-pointer sm:block"
           )}
           style={{
-            // marginLeft: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
             transform: showSidebar ? "rotate(180deg)" : "rotate(0deg)"
           }}
           variant="ghost"
