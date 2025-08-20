@@ -21,6 +21,7 @@ import {
   processResponse,
   validateChatSettings
 } from "../chat-helpers"
+import { toast } from "sonner"
 
 export const useChatHandler = () => {
   const router = useRouter()
@@ -382,10 +383,11 @@ export const useChatHandler = () => {
 
       setIsGenerating(false)
       setFirstTokenReceived(false)
-    } catch (error) {
+    } catch (error: any) {
       setIsGenerating(false)
       setFirstTokenReceived(false)
       setUserInput(startingInput)
+      toast.error(error.message)
     }
   }
 

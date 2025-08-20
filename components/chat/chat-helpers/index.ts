@@ -254,28 +254,35 @@ export const fetchChatResponse = async (
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
 ) => {
-  const response = await fetch(url, {
-    method: "POST",
-    body: JSON.stringify(body),
-    signal: controller.signal
-  })
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+      signal: controller.signal
+    })
 
-  if (!response.ok) {
-    if (response.status === 404 && !isHosted) {
-      toast.error(
-        "Model not found. Make sure you have it downloaded via Ollama."
-      )
+    if (!response.ok) {
+      if (response.status === 404 && !isHosted) {
+        toast.error(
+          "Model not found. Make sure you have it downloaded via Ollama."
+        )
+      }
+
+      const errorData = await response.json()
+
+      toast.error(errorData.message)
+
+      setIsGenerating(false)
+      setChatMessages(prevMessages => prevMessages.slice(0, -2))
     }
 
-    const errorData = await response.json()
-
-    toast.error(errorData.message)
-
+    return response
+  } catch (error: any) {
+    toast.error(error.message)
     setIsGenerating(false)
     setChatMessages(prevMessages => prevMessages.slice(0, -2))
+    throw error
   }
-
-  return response
 }
 
 export const processResponse = async (

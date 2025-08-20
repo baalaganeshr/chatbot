@@ -340,19 +340,14 @@ describe("extractOpenapiData for body 2", () => {
     expect(functions[0].function.parameters.properties.stocksTicker.type).toBe(
       "string"
     )
-    expect(
-      functions[0].function.parameters.properties.stocksTicker
-    ).toHaveProperty("required", true)
+    expect(functions[0].function.parameters.required).toContain("stocksTicker")
     expect(functions[0].function.parameters.properties).toHaveProperty("date")
     expect(functions[0].function.parameters.properties.date.type).toBe("string")
     expect(functions[0].function.parameters.properties.date).toHaveProperty(
       "format",
       "date"
     )
-    expect(functions[0].function.parameters.properties.date).toHaveProperty(
-      "required",
-      true
-    )
+    expect(functions[0].function.parameters.required).toContain("date")
     expect(routes[1].path).toBe("/v2/aggs/ticker/{stocksTicker}/prev")
     expect(routes[1].method).toBe("get")
     expect(routes[1].operationId).toBe("getStockPreviousClose")
@@ -362,8 +357,6 @@ describe("extractOpenapiData for body 2", () => {
     expect(functions[1].function.parameters.properties.stocksTicker.type).toBe(
       "string"
     )
-    expect(
-      functions[1].function.parameters.properties.stocksTicker
-    ).toHaveProperty("required", true)
+    expect(functions[1].function.parameters.required).toContain("stocksTicker")
   })
 })
