@@ -11,17 +11,17 @@ import { ChatMessage, ChatPayload, LLMID, ModelProvider } from "@/types"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef } from "react"
 import { LLM_LIST } from "../../../lib/models/llm/llm-list"
+import { toast } from "sonner"
 import {
   createTempMessages,
   handleCreateChat,
   handleCreateMessages,
-  handleHostedChat,
-  handleLocalChat,
-  handleRetrieval,
-  processResponse,
-  validateChatSettings
-} from "../chat-helpers"
-import { toast } from "sonner"
+  handleRetrieval
+} from "@/lib/chat-helpers"
+import { validateChatSettings } from "@/lib/chat-helpers"
+import { handleHostedChat } from "@/lib/chat-handlers/hosted-chat-handler"
+import { handleOllamaChat } from "@/lib/chat-handlers/ollama-chat-handler"
+import { processResponse } from "@/lib/chat-handlers"
 
 export const useChatHandler = () => {
   const router = useRouter()
@@ -308,12 +308,14 @@ export const useChatHandler = () => {
           setToolInUse
         )
       } else {
+        const providerChatHandler = {
+          ollama: handleOllamaChat,
+          hosted: handleHostedChat
+        }
         if (modelData!.provider === "ollama") {
-          generatedText = await handleLocalChat(
+          generatedText = await providerChatHandler.ollama(
             payload,
             profile!,
-            chatSettings!,
-            tempAssistantChatMessage,
             isRegeneration,
             newAbortController,
             setIsGenerating,
@@ -322,11 +324,10 @@ export const useChatHandler = () => {
             setToolInUse
           )
         } else {
-          generatedText = await handleHostedChat(
+          generatedText = await providerChatHandler.hosted(
             payload,
             profile!,
             modelData!,
-            tempAssistantChatMessage,
             isRegeneration,
             newAbortController,
             newMessageImages,

@@ -27,6 +27,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     models,
     availableHostedModels,
     availableLocalModels,
+    isOllamaRunning,
     availableOpenRouterModels
   } = useContext(ChatbotUIContext)
 
@@ -137,7 +138,14 @@ export const ModelSelect: FC<ModelSelectProps> = ({
             <TabsList defaultValue="hosted" className="grid grid-cols-2">
               <TabsTrigger value="hosted">Hosted</TabsTrigger>
 
-              <TabsTrigger value="local">Local</TabsTrigger>
+              <TabsTrigger value="local" className="flex items-center">
+                Local
+                {isOllamaRunning ? (
+                  <div className="ml-2 h-3 w-3 rounded-full bg-green-500" />
+                ) : (
+                  <div className="ml-2 h-3 w-3 rounded-full bg-red-500" />
+                )}
+              </TabsTrigger>
             </TabsList>
           )}
         </Tabs>

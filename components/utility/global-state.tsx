@@ -54,6 +54,7 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [envKeyMap, setEnvKeyMap] = useState<Record<string, VALID_ENV_KEYS>>({})
   const [availableHostedModels, setAvailableHostedModels] = useState<LLM[]>([])
   const [availableLocalModels, setAvailableLocalModels] = useState<LLM[]>([])
+  const [isOllamaRunning, setIsOllamaRunning] = useState(false)
   const [availableOpenRouterModels, setAvailableOpenRouterModels] = useState<
     OpenRouterLLM[]
   >([])
@@ -152,6 +153,25 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
     })()
   }, [])
 
+  useEffect(() => {
+    const checkOllama = async () => {
+      if (process.env.NEXT_PUBLIC_OLLAMA_URL) {
+        try {
+          const response = await fetch(process.env.NEXT_PUBLIC_OLLAMA_URL)
+          if (response.ok) {
+            setIsOllamaRunning(true)
+          } else {
+            setIsOllamaRunning(false)
+          }
+        } catch (error) {
+          setIsOllamaRunning(false)
+        }
+      }
+    }
+
+    checkOllama()
+  }, [])
+
   const fetchStartingData = async () => {
     const session = (await supabase.auth.getSession()).data.session
 
@@ -233,6 +253,8 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
         setAvailableHostedModels,
         availableLocalModels,
         setAvailableLocalModels,
+        isOllamaRunning,
+        setIsOllamaRunning,
         availableOpenRouterModels,
         setAvailableOpenRouterModels,
 
