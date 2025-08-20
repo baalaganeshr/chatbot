@@ -102,7 +102,8 @@ export const createTempMessages = (
       updated_at: "",
       user_id: ""
     },
-    fileItems: []
+    fileItems: [],
+    status: "sent"
   }
 
   let tempAssistantChatMessage: ChatMessage = {
@@ -119,7 +120,8 @@ export const createTempMessages = (
       updated_at: "",
       user_id: ""
     },
-    fileItems: []
+    fileItems: [],
+    status: "sending"
   }
 
   let newMessages = []
@@ -208,9 +210,12 @@ export const handleHostedChat = async (
 
   let draftMessages = await buildFinalMessages(payload, profile, chatImages)
 
-  let formattedMessages : any[] = []
+  let formattedMessages: any[] = []
   if (provider === "google") {
-    formattedMessages = await adaptMessagesForGoogleGemini(payload, draftMessages)
+    formattedMessages = await adaptMessagesForGoogleGemini(
+      payload,
+      draftMessages
+    )
   } else {
     formattedMessages = draftMessages
   }
@@ -490,11 +495,13 @@ export const handleCreateMessages = async (
       ...chatMessages,
       {
         message: updatedMessage,
-        fileItems: []
+        fileItems: [],
+        status: "sent"
       },
       {
         message: createdMessages[1],
-        fileItems: retrievedFileItems.map(fileItem => fileItem.id)
+        fileItems: retrievedFileItems.map(fileItem => fileItem.id),
+        status: "sent"
       }
     ]
 

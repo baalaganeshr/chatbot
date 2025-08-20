@@ -386,6 +386,15 @@ export const useChatHandler = () => {
       setIsGenerating(false)
       setFirstTokenReceived(false)
       setUserInput(startingInput)
+
+      setChatMessages(prev => {
+        const lastMessage = prev[prev.length - 1]
+        if (lastMessage.message.role === "assistant") {
+          lastMessage.status = "error"
+          lastMessage.error = (error as Error).message
+        }
+        return [...prev]
+      })
     }
   }
 
