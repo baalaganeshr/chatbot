@@ -18,6 +18,9 @@ export const handleOllamaChat = async (
   try {
     const formattedMessages = await buildFinalMessages(payload, profile, [])
 
+    const lastMessage = formattedMessages[formattedMessages.length - 1]
+    const lastMessageImages = lastMessage.images || []
+
     const response = await fetchChatResponse(
       process.env.NEXT_PUBLIC_OLLAMA_URL + "/api/chat",
       {
@@ -25,7 +28,8 @@ export const handleOllamaChat = async (
         messages: formattedMessages,
         options: {
           temperature: payload.chatSettings.temperature
-        }
+        },
+        images: lastMessageImages
       },
       false,
       newAbortController,

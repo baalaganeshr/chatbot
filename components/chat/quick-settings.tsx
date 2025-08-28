@@ -1,11 +1,7 @@
 import { ChatbotUIContext } from "@/context/context"
-import { getAssistantCollectionsByAssistantId } from "@/db/assistant-collections"
-import { getAssistantFilesByAssistantId } from "@/db/assistant-files"
-import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
-import { getCollectionFilesByCollectionId } from "@/db/collection-files"
 import useHotkey from "@/lib/hooks/use-hotkey"
+import { getFromLocalStorage } from "@/lib/local-storage"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
-import { Tables } from "@/supabase/types"
 import { LLMID } from "@/types"
 import { IconChevronDown, IconRobotFace } from "@tabler/icons-react"
 import Image from "next/image"
@@ -20,7 +16,6 @@ import {
 } from "../ui/dropdown-menu"
 import { Input } from "../ui/input"
 import { QuickSettingOption } from "./quick-setting-option"
-import { set } from "date-fns"
 
 interface QuickSettingsProps {}
 
@@ -60,28 +55,26 @@ export const QuickSettings: FC<QuickSettingsProps> = ({}) => {
   }, [isOpen])
 
   const handleSelectQuickSetting = async (
-    item: Tables<"presets"> | Tables<"assistants"> | null,
+    item: any | null,
     contentType: "presets" | "assistants" | "remove"
   ) => {
-    console.log({ item, contentType })
     if (contentType === "assistants" && item) {
-      setSelectedAssistant(item as Tables<"assistants">)
+      setSelectedAssistant(item)
       setLoading(true)
-      let allFiles = []
-      const assistantFiles = (await getAssistantFilesByAssistantId(item.id))
-        .files
-      allFiles = [...assistantFiles]
-      const assistantCollections = (
-        await getAssistantCollectionsByAssistantId(item.id)
-      ).collections
+      const assistantFiles =
+        getFromLocalStorage(`assistant_files_${item.id}`) || []
+      const assistantCollections =
+        getFromLocalStorage(`assistant_collections_${item.id}`) || []
+      const assistantTools =
+        getFromLocalStorage(`assistant_tools_${item.id}`) || []
+
+      let allFiles = [...assistantFiles]
       for (const collection of assistantCollections) {
-        const collectionFiles = (
-          await getCollectionFilesByCollectionId(collection.id)
-        ).files
+        const collectionFiles =
+          getFromLocalStorage(`collection_files_${collection.id}`) || []
         allFiles = [...allFiles, ...collectionFiles]
       }
-      const assistantTools = (await getAssistantToolsByAssistantId(item.id))
-        .tools
+
       setSelectedTools(assistantTools)
       setChatFiles(
         allFiles.map(file => ({
@@ -95,7 +88,7 @@ export const QuickSettings: FC<QuickSettingsProps> = ({}) => {
       setLoading(false)
       setSelectedPreset(null)
     } else if (contentType === "presets" && item) {
-      setSelectedPreset(item as Tables<"presets">)
+      setSelectedPreset(item)
       setSelectedAssistant(null)
       setChatFiles([])
       setSelectedTools([])
@@ -257,12 +250,7 @@ export const QuickSettings: FC<QuickSettingsProps> = ({}) => {
               <QuickSettingOption
                 contentType={selectedPreset ? "presets" : "assistants"}
                 isSelected={true}
-                item={
-                  selectedPreset ||
-                  (selectedAssistant as
-                    | Tables<"presets">
-                    | Tables<"assistants">)
-                }
+                item={selectedPreset || selectedAssistant}
                 onSelect={() => {
                   handleSelectQuickSetting(null, "remove")
                 }}
@@ -292,9 +280,7 @@ export const QuickSettings: FC<QuickSettingsProps> = ({}) => {
                   image={
                     contentType === "assistants"
                       ? assistantImages.find(
-                          image =>
-                            image.path ===
-                            (item as Tables<"assistants">).image_path
+                          image => image.path === (item as any).image_path
                         )?.base64 || ""
                       : ""
                   }

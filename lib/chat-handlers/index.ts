@@ -10,9 +10,17 @@ export const fetchChatResponse = async (
   setChatMessages: React.Dispatch<React.SetStateAction<any[]>>
 ) => {
   try {
+    const bodyWithImages = body as any
+
+    if (bodyWithImages.images) {
+      bodyWithImages.images = bodyWithImages.images.map((image: string) =>
+        image.split(",")[1]
+      )
+    }
+
     const response = await fetch(url, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify(bodyWithImages),
       signal: controller.signal
     })
 

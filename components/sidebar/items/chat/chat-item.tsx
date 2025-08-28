@@ -3,7 +3,6 @@ import { WithTooltip } from "@/components/ui/with-tooltip"
 import { ChatbotUIContext } from "@/context/context"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
-import { Tables } from "@/supabase/types"
 import { LLM } from "@/types"
 import { IconRobotFace } from "@tabler/icons-react"
 import Image from "next/image"
@@ -13,7 +12,7 @@ import { DeleteChat } from "./delete-chat"
 import { UpdateChat } from "./update-chat"
 
 interface ChatItemProps {
-  chat: Tables<"chats">
+  chat: any
 }
 
 export const ChatItem: FC<ChatItemProps> = ({ chat }) => {

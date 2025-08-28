@@ -1,9 +1,7 @@
-import { createChatFiles } from "@/db/chat-files"
-import { createChat } from "@/db/chats"
-import { createMessageFileItems } from "@/db/message-file-items"
-import { createMessages, updateMessage } from "@/db/messages"
-import { uploadMessageImage } from "@/db/storage/message-images"
-import { Tables, TablesInsert } from "@/supabase/types"
+import {
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { ChatFile, ChatMessage, ChatSettings, LLM, MessageImage } from "@/types"
 import { v4 as uuidv4 } from "uuid"
 
@@ -28,9 +26,7 @@ export const handleRetrieval = async (
     console.error("Error retrieving:", response)
   }
 
-  const { results } = (await response.json()) as {
-    results: Tables<"file_items">[]
-  }
+  const { results } = (await response.json()) as any
 
   return results
 }
@@ -42,7 +38,7 @@ export const createTempMessages = (
   b64Images: string[],
   isRegeneration: boolean,
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  selectedAssistant: Tables<"assistants"> | null
+  selectedAssistant: any | null
 ) => {
   let tempUserChatMessage: ChatMessage = {
     message: {
@@ -102,16 +98,16 @@ export const createTempMessages = (
 
 export const handleCreateChat = async (
   chatSettings: ChatSettings,
-  profile: Tables<"profiles">,
-  selectedWorkspace: Tables<"workspaces">,
+  profile: any,
+  selectedWorkspace: any,
   messageContent: string,
-  selectedAssistant: Tables<"assistants">,
+  selectedAssistant: any,
   newMessageFiles: ChatFile[],
-  setSelectedChat: React.Dispatch<React.SetStateAction<Tables<"chats"> | null>>,
-  setChats: React.Dispatch<React.SetStateAction<Tables<"chats">[]>>,
+  setSelectedChat: React.Dispatch<React.SetStateAction<any | null>>,
+  setChats: React.Dispatch<React.SetStateAction<any[]>>,
   setChatFiles: React.Dispatch<React.SetStateAction<ChatFile[]>>
 ) => {
-  const createdChat = await createChat({
+  const createdChat = {
     user_id: profile.user_id,
     workspace_id: selectedWorkspace.id,
     assistant_id: selectedAssistant?.id || null,
@@ -122,19 +118,26 @@ export const handleCreateChat = async (
     name: messageContent.substring(0, 100),
     prompt: chatSettings.prompt,
     temperature: chatSettings.temperature,
-    embeddings_provider: chatSettings.embeddingsProvider
-  })
+    embeddings_provider: chatSettings.embeddingsProvider,
+    id: uuidv4(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+
+  const chats = getFromLocalStorage("chats") || []
+  setInLocalStorage("chats", [createdChat, ...chats])
 
   setSelectedChat(createdChat)
   setChats(chats => [createdChat, ...chats])
 
-  await createChatFiles(
-    newMessageFiles.map(file => ({
-      user_id: profile.user_id,
-      chat_id: createdChat.id,
-      file_id: file.id
-    }))
-  )
+  // TODO: handle chat files
+  // await createChatFiles(
+  //   newMessageFiles.map(file => ({
+  //     user_id: profile.user_id,
+  //     chat_id: createdChat.id,
+  //     file_id: file.id
+  //   }))
+  // )
 
   setChatFiles(prev => [...prev, ...newMessageFiles])
 
@@ -143,22 +146,20 @@ export const handleCreateChat = async (
 
 export const handleCreateMessages = async (
   chatMessages: ChatMessage[],
-  currentChat: Tables<"chats">,
-  profile: Tables<"profiles">,
+  currentChat: any,
+  profile: any,
   modelData: LLM,
   messageContent: string,
   generatedText: string,
   newMessageImages: MessageImage[],
   isRegeneration: boolean,
-  retrievedFileItems: Tables<"file_items">[],
+  retrievedFileItems: any[],
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-  setChatFileItems: React.Dispatch<
-    React.SetStateAction<Tables<"file_items">[]>
-  >,
+  setChatFileItems: React.Dispatch<React.SetStateAction<any[]>>,
   setChatImages: React.Dispatch<React.SetStateAction<MessageImage[]>>,
-  selectedAssistant: Tables<"assistants"> | null
+  selectedAssistant: any | null
 ) => {
-  const finalUserMessage: TablesInsert<"messages"> = {
+  const finalUserMessage = {
     chat_id: currentChat.id,
     assistant_id: null,
     user_id: profile.user_id,
@@ -166,10 +167,10 @@ export const handleCreateMessages = async (
     model: modelData.modelId,
     role: "user",
     sequence_number: chatMessages.length,
-    image_paths: []
+    image_paths: newMessageImages.map(img => img.base64)
   }
 
-  const finalAssistantMessage: TablesInsert<"messages"> = {
+  const finalAssistantMessage = {
     chat_id: currentChat.id,
     assistant_id: selectedAssistant?.id || null,
     user_id: profile.user_id,
@@ -182,86 +183,46 @@ export const handleCreateMessages = async (
 
   let finalChatMessages: ChatMessage[] = []
 
-  if (isRegeneration) {
-    const lastStartingMessage = chatMessages[chatMessages.length - 1].message
+  const messages = getFromLocalStorage(`messages_${currentChat.id}`) || []
 
-    const updatedMessage = await updateMessage(lastStartingMessage.id, {
+  if (isRegeneration) {
+    const lastStartingMessage = messages[messages.length - 1]
+
+    const updatedMessage = {
       ...lastStartingMessage,
       content: generatedText
-    })
+    }
 
-    chatMessages[chatMessages.length - 1].message = updatedMessage
+    const updatedMessages = messages.map((message: any) =>
+      message.id === lastStartingMessage.id ? updatedMessage : message
+    )
+
+    setInLocalStorage(`messages_${currentChat.id}`, updatedMessages)
+
+    // TODO: fix this
+    // chatMessages[chatMessages.length - 1].message = updatedMessage
 
     finalChatMessages = [...chatMessages]
 
     setChatMessages(finalChatMessages)
   } else {
-    const createdMessages = await createMessages([
+    setInLocalStorage(`messages_${currentChat.id}`, [
+      ...messages,
       finalUserMessage,
       finalAssistantMessage
     ])
 
-    // Upload each image (stored in newMessageImages) for the user message to message_images bucket
-    const uploadPromises = newMessageImages
-      .filter(obj => obj.file !== null)
-      .map(obj => {
-        let filePath = `${profile.user_id}/${currentChat.id}/${
-          createdMessages[0].id
-        }/${uuidv4()}`
-
-        return uploadMessageImage(filePath, obj.file as File).catch(error => {
-          console.error(`Failed to upload image at ${filePath}:`, error)
-          return null
-        })
-      })
-
-    const paths = (await Promise.all(uploadPromises)).filter(
-      Boolean
-    ) as string[]
-
-    setChatImages(prevImages => [
-      ...prevImages,
-      ...newMessageImages.map((obj, index) => ({
-        ...obj,
-        messageId: createdMessages[0].id,
-        path: paths[index]
-      }))
-    ])
-
-    const updatedMessage = await updateMessage(createdMessages[0].id, {
-      ...createdMessages[0],
-      image_paths: paths
-    })
-
-    const createdMessageFileItems = await createMessageFileItems(
-      retrievedFileItems.map(fileItem => {
-        return {
-          user_id: profile.user_id,
-          message_id: createdMessages[1].id,
-          file_item_id: fileItem.id
-        }
-      })
-    )
-
     finalChatMessages = [
       ...chatMessages,
       {
-        message: updatedMessage,
+        message: finalUserMessage,
         fileItems: []
       },
       {
-        message: createdMessages[1],
+        message: finalAssistantMessage,
         fileItems: retrievedFileItems.map(fileItem => fileItem.id)
       }
     ]
-
-    setChatFileItems(prevFileItems => {
-      const newFileItems = retrievedFileItems.filter(
-        fileItem => !prevFileItems.some(prevItem => prevItem.id === fileItem.id)
-      )
-
-      return [...prevFileItems, ...newFileItems]
-    })
 
     setChatMessages(finalChatMessages)
   }

@@ -10,14 +10,17 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 import { ChatbotUIContext } from "@/context/context"
-import { deleteWorkspace } from "@/db/workspaces"
-import { Tables } from "@/supabase/types"
+import {
+  getFromLocalStorage,
+  removeFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { FC, useContext, useRef, useState } from "react"
 import { Input } from "../ui/input"
 import { useRouter } from "next/navigation"
 
 interface DeleteWorkspaceProps {
-  workspace: Tables<"workspaces">
+  workspace: any
   onDelete: () => void
 }
 
@@ -36,11 +39,16 @@ export const DeleteWorkspace: FC<DeleteWorkspaceProps> = ({
   const [name, setName] = useState("")
 
   const handleDeleteWorkspace = async () => {
-    await deleteWorkspace(workspace.id)
+    removeFromLocalStorage(`workspace_${workspace.id}`)
+    const workspaces = getFromLocalStorage("workspaces") || []
+    const updatedWorkspaces = workspaces.filter(
+      (w: any) => w.id !== workspace.id
+    )
+    setInLocalStorage("workspaces", updatedWorkspaces)
 
     setWorkspaces(prevWorkspaces => {
       const filteredWorkspaces = prevWorkspaces.filter(
-        w => w.id !== workspace.id
+        (w: any) => w.id !== workspace.id
       )
 
       const defaultWorkspace = filteredWorkspaces[0]

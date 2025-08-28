@@ -10,13 +10,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ChatbotUIContext } from "@/context/context"
-import { updateChat } from "@/db/chats"
-import { Tables } from "@/supabase/types"
+import {
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { IconEdit } from "@tabler/icons-react"
 import { FC, useContext, useRef, useState } from "react"
 
 interface UpdateChatProps {
-  chat: Tables<"chats">
+  chat: any
 }
 
 export const UpdateChat: FC<UpdateChatProps> = ({ chat }) => {
@@ -28,9 +30,13 @@ export const UpdateChat: FC<UpdateChatProps> = ({ chat }) => {
   const [name, setName] = useState(chat.name)
 
   const handleUpdateChat = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    const updatedChat = await updateChat(chat.id, {
-      name
-    })
+    const chats = getFromLocalStorage("chats") || []
+    const updatedChat = { ...chat, name }
+    const updatedChats = chats.map((c: any) =>
+      c.id === chat.id ? updatedChat : c
+    )
+    setInLocalStorage("chats", updatedChats)
+
     setChats(prevState =>
       prevState.map(c => (c.id === chat.id ? updatedChat : c))
     )
