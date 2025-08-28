@@ -64,14 +64,36 @@ export const fetchOllamaModels = async () => {
 
     const data = await response.json()
 
-    const localModels: LLM[] = data.models.map((model: any) => ({
-      modelId: model.name as LLMID,
-      modelName: model.name,
-      provider: "ollama",
-      hostedId: model.name,
-      platformLink: "https://ollama.ai/library",
-      imageInput: false
-    }))
+    const localModels: LLM[] = await Promise.all(
+      data.models.map(async (model: any) => {
+        const showResponse = await fetch(
+          process.env.NEXT_PUBLIC_OLLAMA_URL + "/api/show",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name: model.name })
+          }
+        )
+
+        if (!showResponse.ok) {
+          throw new Error(`Ollama server is not responding for model ${model.name}.`)
+        }
+
+        const showData = await showResponse.json()
+
+        return {
+          modelId: model.name as LLMID,
+          modelName: model.name,
+          provider: "ollama",
+          hostedId: model.name,
+          platformLink: "https://ollama.ai/library",
+          imageInput: showData.details.family === "llava",
+          family: showData.details.family
+        }
+      })
+    )
 
     return localModels
   } catch (error) {

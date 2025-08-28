@@ -10,14 +10,16 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 import { ChatbotUIContext } from "@/context/context"
-import { deleteChat } from "@/db/chats"
+import {
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { Tables } from "@/supabase/types"
 import { IconTrash } from "@tabler/icons-react"
 import { FC, useContext, useRef, useState } from "react"
 
 interface DeleteChatProps {
-  chat: Tables<"chats">
+  chat: any
 }
 
 export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
@@ -31,7 +33,9 @@ export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
   const [showChatDialog, setShowChatDialog] = useState(false)
 
   const handleDeleteChat = async () => {
-    await deleteChat(chat.id)
+    const chats = getFromLocalStorage("chats") || []
+    const updatedChats = chats.filter((c: any) => c.id !== chat.id)
+    setInLocalStorage("chats", updatedChats)
 
     setChats(prevState => prevState.filter(c => c.id !== chat.id))
 

@@ -9,16 +9,10 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 import { ChatbotUIContext } from "@/context/context"
-import { deleteAssistant } from "@/db/assistants"
-import { deleteChat } from "@/db/chats"
-import { deleteCollection } from "@/db/collections"
-import { deleteFile } from "@/db/files"
-import { deleteModel } from "@/db/models"
-import { deletePreset } from "@/db/presets"
-import { deletePrompt } from "@/db/prompts"
-import { deleteFileFromStorage } from "@/db/storage/files"
-import { deleteTool } from "@/db/tools"
-import { Tables } from "@/supabase/types"
+import {
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { ContentType, DataItemType } from "@/types"
 import { FC, useContext, useRef, useState } from "react"
 
@@ -47,33 +41,49 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
   const [showDialog, setShowDialog] = useState(false)
 
   const deleteFunctions = {
-    chats: async (chat: Tables<"chats">) => {
-      await deleteChat(chat.id)
+    chats: (chat: any) => {
+      const chats = getFromLocalStorage("chats") || []
+      const updatedChats = chats.filter((c: any) => c.id !== chat.id)
+      setInLocalStorage("chats", updatedChats)
     },
-    presets: async (preset: Tables<"presets">) => {
-      await deletePreset(preset.id)
+    presets: (preset: any) => {
+      const presets = getFromLocalStorage("presets") || []
+      const updatedPresets = presets.filter((p: any) => p.id !== preset.id)
+      setInLocalStorage("presets", updatedPresets)
     },
-    prompts: async (prompt: Tables<"prompts">) => {
-      await deletePrompt(prompt.id)
+    prompts: (prompt: any) => {
+      const prompts = getFromLocalStorage("prompts") || []
+      const updatedPrompts = prompts.filter((p: any) => p.id !== prompt.id)
+      setInLocalStorage("prompts", updatedPrompts)
     },
-    files: async (file: Tables<"files">) => {
-      await deleteFileFromStorage(file.file_path)
-      await deleteFile(file.id)
+    files: (file: any) => {
+      const files = getFromLocalStorage("files") || []
+      const updatedFiles = files.filter((f: any) => f.id !== file.id)
+      setInLocalStorage("files", updatedFiles)
     },
-    collections: async (collection: Tables<"collections">) => {
-      await deleteCollection(collection.id)
-    },
-    assistants: async (assistant: Tables<"assistants">) => {
-      await deleteAssistant(assistant.id)
-      setChats(prevState =>
-        prevState.filter(chat => chat.assistant_id !== assistant.id)
+    collections: (collection: any) => {
+      const collections = getFromLocalStorage("collections") || []
+      const updatedCollections = collections.filter(
+        (c: any) => c.id !== collection.id
       )
+      setInLocalStorage("collections", updatedCollections)
     },
-    tools: async (tool: Tables<"tools">) => {
-      await deleteTool(tool.id)
+    assistants: (assistant: any) => {
+      const assistants = getFromLocalStorage("assistants") || []
+      const updatedAssistants = assistants.filter(
+        (a: any) => a.id !== assistant.id
+      )
+      setInLocalStorage("assistants", updatedAssistants)
     },
-    models: async (model: Tables<"models">) => {
-      await deleteModel(model.id)
+    tools: (tool: any) => {
+      const tools = getFromLocalStorage("tools") || []
+      const updatedTools = tools.filter((t: any) => t.id !== tool.id)
+      setInLocalStorage("tools", updatedTools)
+    },
+    models: (model: any) => {
+      const models = getFromLocalStorage("models") || []
+      const updatedModels = models.filter((m: any) => m.id !== model.id)
+      setInLocalStorage("models", updatedModels)
     }
   }
 

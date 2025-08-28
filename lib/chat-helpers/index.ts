@@ -1,11 +1,10 @@
-import { Tables } from "@/supabase/types"
 import { ChatSettings, LLM } from "@/types"
 
 export const validateChatSettings = (
   chatSettings: ChatSettings | null,
   modelData: LLM | undefined,
-  profile: Tables<"profiles"> | null,
-  selectedWorkspace: Tables<"workspaces"> | null,
+  profile: any | null,
+  selectedWorkspace: any | null,
   messageContent: string
 ) => {
   if (!chatSettings) {

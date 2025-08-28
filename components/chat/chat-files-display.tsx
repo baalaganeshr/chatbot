@@ -1,5 +1,4 @@
 import { ChatbotUIContext } from "@/context/context"
-import { getFileFromStorage } from "@/db/storage/files"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { cn } from "@/lib/utils"
 import { ChatFile, MessageImage } from "@/types"
@@ -29,7 +28,6 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
   useHotkey("e", () => setUseRetrieval(prev => !prev))
 
   const {
-    files,
     newMessageImages,
     setNewMessageImages,
     newMessageFiles,
@@ -64,12 +62,10 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
   const combinedMessageFiles = [...messageImages, ...combinedChatFiles]
 
   const getLinkAndView = async (file: ChatFile) => {
-    const fileRecord = files.find(f => f.id === file.id)
-
-    if (!fileRecord) return
-
-    const link = await getFileFromStorage(fileRecord.file_path)
-    window.open(link, "_blank")
+    if (file.file) {
+      const url = URL.createObjectURL(file.file)
+      window.open(url, "_blank")
+    }
   }
 
   return showFilesDisplay && combinedMessageFiles.length > 0 ? (
@@ -130,7 +126,7 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
                     maxHeight: "56px",
                     maxWidth: "56px"
                   }}
-                  src={image.base64} // Preview images will always be base64
+                  src={image.base64 as string} // Preview images will always be base64
                   alt="File image"
                   width={56}
                   height={56}

@@ -1,14 +1,6 @@
 import { ChatbotUIContext } from "@/context/context"
-import { getAssistantCollectionsByAssistantId } from "@/db/assistant-collections"
-import { getAssistantFilesByAssistantId } from "@/db/assistant-files"
-import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
-import { updateChat } from "@/db/chats"
-import { getCollectionFilesByCollectionId } from "@/db/collection-files"
-import { deleteMessagesIncludingAndAfter } from "@/db/messages"
 import { buildFinalMessages } from "@/lib/build-prompt"
-import { Tables } from "@/supabase/types"
 import { ChatMessage, ChatPayload, LLMID, ModelProvider } from "@/types"
-import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef } from "react"
 import { LLM_LIST } from "../../../lib/models/llm/llm-list"
 import { toast } from "sonner"
@@ -22,10 +14,9 @@ import { validateChatSettings } from "@/lib/chat-helpers"
 import { handleHostedChat } from "@/lib/chat-handlers/hosted-chat-handler"
 import { handleOllamaChat } from "@/lib/chat-handlers/ollama-chat-handler"
 import { processResponse } from "@/lib/chat-handlers"
+import { getFromLocalStorage } from "@/lib/local-storage"
 
 export const useChatHandler = () => {
-  const router = useRouter()
-
   const {
     userInput,
     chatFiles,
@@ -114,36 +105,25 @@ export const useChatHandler = () => {
           | "local"
       })
 
-      let allFiles = []
-
-      const assistantFiles = (
-        await getAssistantFilesByAssistantId(selectedAssistant.id)
-      ).files
-      allFiles = [...assistantFiles]
-      const assistantCollections = (
-        await getAssistantCollectionsByAssistantId(selectedAssistant.id)
-      ).collections
+      const assistantFiles =
+        getFromLocalStorage(`assistant_files_${selectedAssistant.id}`) || []
+      const assistantCollections =
+        getFromLocalStorage(`assistant_collections_${selectedAssistant.id}`) ||
+        []
+      let allFiles = [...assistantFiles]
       for (const collection of assistantCollections) {
-        const collectionFiles = (
-          await getCollectionFilesByCollectionId(collection.id)
-        ).files
+        const collectionFiles =
+          getFromLocalStorage(`collection_files_${collection.id}`) || []
         allFiles = [...allFiles, ...collectionFiles]
       }
-      const assistantTools = (
-        await getAssistantToolsByAssistantId(selectedAssistant.id)
-      ).tools
-
-      setSelectedTools(assistantTools)
       setChatFiles(
-        allFiles.map(file => ({
+        allFiles.map((file: any) => ({
           id: file.id,
           name: file.name,
           type: file.type,
           file: null
         }))
       )
-
-      if (allFiles.length > 0) setShowFilesDisplay(true)
     } else if (selectedPreset) {
       setChatSettings({
         model: selectedPreset.model as LLMID,
@@ -158,25 +138,23 @@ export const useChatHandler = () => {
           | "local"
       })
     } else if (selectedWorkspace) {
-      // setChatSettings({
-      //   model: (selectedWorkspace.default_model ||
-      //     "gpt-4-1106-preview") as LLMID,
-      //   prompt:
-      //     selectedWorkspace.default_prompt ||
-      //     "You are a friendly, helpful AI assistant.",
-      //   temperature: selectedWorkspace.default_temperature || 0.5,
-      //   contextLength: selectedWorkspace.default_context_length || 4096,
-      //   includeProfileContext:
-      //     selectedWorkspace.include_profile_context || true,
-      //   includeWorkspaceInstructions:
-      //     selectedWorkspace.include_workspace_instructions || true,
-      //   embeddingsProvider:
-      //     (selectedWorkspace.embeddings_provider as "openai" | "local") ||
-      //     "openai"
-      // })
+      setChatSettings({
+        model: (selectedWorkspace.default_model ||
+          "gpt-4-1106-preview") as LLMID,
+        prompt:
+          selectedWorkspace.default_prompt ||
+          "You are a friendly, helpful AI assistant.",
+        temperature: selectedWorkspace.default_temperature || 0.5,
+        contextLength: selectedWorkspace.default_context_length || 4096,
+        includeProfileContext:
+          selectedWorkspace.include_profile_context || true,
+        includeWorkspaceInstructions:
+          selectedWorkspace.include_workspace_instructions || true,
+        embeddingsProvider:
+          (selectedWorkspace.embeddings_provider as "openai" | "local") ||
+          "openai"
+      })
     }
-
-    return router.push(`/${selectedWorkspace.id}/chat`)
   }
 
   const handleFocusChatInput = () => {
@@ -232,7 +210,7 @@ export const useChatHandler = () => {
 
       const b64Images = newMessageImages.map(image => image.base64)
 
-      let retrievedFileItems: Tables<"file_items">[] = []
+      let retrievedFileItems: any[] = []
 
       if (
         (newMessageFiles.length > 0 || chatFiles.length > 0) &&
@@ -254,7 +232,7 @@ export const useChatHandler = () => {
           messageContent,
           chatMessages,
           chatSettings!,
-          b64Images,
+          b64Images as string[],
           isRegeneration,
           setChatMessages,
           selectedAssistant
@@ -353,17 +331,16 @@ export const useChatHandler = () => {
           setChatFiles
         )
       } else {
-        const updatedChat = await updateChat(currentChat.id, {
+        const chats = getFromLocalStorage("chats") || []
+        const updatedChat = {
+          ...currentChat,
           updated_at: new Date().toISOString()
-        })
-
-        setChats(prevChats => {
-          const updatedChats = prevChats.map(prevChat =>
-            prevChat.id === updatedChat.id ? updatedChat : prevChat
-          )
-
-          return updatedChats
-        })
+        }
+        const updatedChats = chats.map((chat: any) =>
+          chat.id === currentChat.id ? updatedChat : chat
+        )
+        setInLocalStorage("chats", updatedChats)
+        setChats(updatedChats)
       }
 
       await handleCreateMessages(
@@ -398,19 +375,20 @@ export const useChatHandler = () => {
   ) => {
     if (!selectedChat) return
 
-    await deleteMessagesIncludingAndAfter(
-      selectedChat.user_id,
-      selectedChat.id,
-      sequenceNumber
+    const messages =
+      getFromLocalStorage(`messages_${selectedChat.id}`) || []
+    const filteredMessages = messages.filter(
+      (message: any) => message.sequence_number < sequenceNumber
     )
+    setInLocalStorage(`messages_${selectedChat.id}`, filteredMessages)
 
-    const filteredMessages = chatMessages.filter(
+    const filteredChatMessages = chatMessages.filter(
       chatMessage => chatMessage.message.sequence_number < sequenceNumber
     )
 
-    setChatMessages(filteredMessages)
+    setChatMessages(filteredChatMessages)
 
-    handleSendMessage(editedContent, filteredMessages, false)
+    handleSendMessage(editedContent, filteredChatMessages, false)
   }
 
   return {

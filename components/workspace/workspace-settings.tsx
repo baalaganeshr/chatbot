@@ -1,21 +1,16 @@
 import { ChatbotUIContext } from "@/context/context"
-import { WORKSPACE_INSTRUCTIONS_MAX } from "@/db/limits"
 import {
-  getWorkspaceImageFromStorage,
-  uploadWorkspaceImage
-} from "@/db/storage/workspace-images"
-import { updateWorkspace } from "@/db/workspaces"
-import { convertBlobToBase64 } from "@/lib/blob-to-b64"
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { LLMID } from "@/types"
 import { IconHome, IconSettings } from "@tabler/icons-react"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "../ui/button"
 import { ChatSettingsForm } from "../ui/chat-settings-form"
-import ImagePicker from "../ui/image-picker"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
-import { LimitDisplay } from "../ui/limit-display"
 import {
   Sheet,
   SheetContent,
@@ -47,7 +42,6 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
 
   const [name, setName] = useState(selectedWorkspace?.name || "")
   const [imageLink, setImageLink] = useState("")
-  const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [description, setDescription] = useState(
     selectedWorkspace?.description || ""
   )
@@ -66,47 +60,13 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
     embeddingsProvider: selectedWorkspace?.embeddings_provider
   })
 
-  useEffect(() => {
-    const workspaceImage =
-      workspaceImages.find(
-        image => image.path === selectedWorkspace?.image_path
-      )?.base64 || ""
-
-    setImageLink(workspaceImage)
-  }, [workspaceImages])
-
   const handleSave = async () => {
     if (!selectedWorkspace) return
 
-    let imagePath = ""
-
-    if (selectedImage) {
-      imagePath = await uploadWorkspaceImage(selectedWorkspace, selectedImage)
-
-      const url = (await getWorkspaceImageFromStorage(imagePath)) || ""
-
-      if (url) {
-        const response = await fetch(url)
-        const blob = await response.blob()
-        const base64 = await convertBlobToBase64(blob)
-
-        setWorkspaceImages(prev => [
-          ...prev,
-          {
-            workspaceId: selectedWorkspace.id,
-            path: imagePath,
-            base64,
-            url
-          }
-        ])
-      }
-    }
-
-    const updatedWorkspace = await updateWorkspace(selectedWorkspace.id, {
+    const updatedWorkspace = {
       ...selectedWorkspace,
       name,
       description,
-      image_path: imagePath,
       instructions,
       default_model: defaultChatSettings.model,
       default_prompt: defaultChatSettings.prompt,
@@ -116,7 +76,13 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
       include_profile_context: defaultChatSettings.includeProfileContext,
       include_workspace_instructions:
         defaultChatSettings.includeWorkspaceInstructions
-    })
+    }
+
+    const workspaces = getFromLocalStorage("workspaces") || []
+    const updatedWorkspaces = workspaces.map((workspace: any) =>
+      workspace.id === selectedWorkspace.id ? updatedWorkspace : workspace
+    )
+    setInLocalStorage("workspaces", updatedWorkspaces)
 
     if (
       defaultChatSettings.model &&
@@ -215,29 +181,6 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
                     onChange={e => setName(e.target.value)}
                   />
                 </div>
-
-                {/* <div className="space-y-1">
-                  <Label>Description</Label>
-
-                  <Input
-                    placeholder="Description... (optional)"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                  />
-                </div> */}
-
-                <div className="space-y-1">
-                  <Label>Workspace Image</Label>
-
-                  <ImagePicker
-                    src={imageLink}
-                    image={selectedImage}
-                    onSrcChange={setImageLink}
-                    onImageChange={setSelectedImage}
-                    width={50}
-                    height={50}
-                  />
-                </div>
               </>
 
               <div className="space-y-1">
@@ -252,11 +195,6 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
                   minRows={5}
                   maxRows={10}
                   maxLength={1500}
-                />
-
-                <LimitDisplay
-                  used={instructions.length}
-                  limit={WORKSPACE_INSTRUCTIONS_MAX}
                 />
               </div>
             </TabsContent>

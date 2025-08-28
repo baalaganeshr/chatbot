@@ -9,9 +9,10 @@ import {
   DropdownMenuTrigger
 } from "../ui/dropdown-menu"
 import { Input } from "../ui/input"
-import { Tabs, TabsList, TabsTrigger } from "../ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { ModelIcon } from "./model-icon"
 import { ModelOption } from "./model-option"
+import { OllamaManageModels } from "./ollama-manage-models"
 
 interface ModelSelectProps {
   selectedModelId: string
@@ -37,6 +38,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [tab, setTab] = useState<"hosted" | "local">("hosted")
+  const [localTab, setLocalTab] = useState<"select" | "manage">("select")
 
   useEffect(() => {
     if (isOpen) {
@@ -148,63 +150,147 @@ export const ModelSelect: FC<ModelSelectProps> = ({
               </TabsTrigger>
             </TabsList>
           )}
-        </Tabs>
 
-        <Input
-          ref={inputRef}
-          className="w-full"
-          placeholder="Search models..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+          <TabsContent value="hosted">
+            <Input
+              ref={inputRef}
+              className="w-full"
+              placeholder="Search models..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
 
-        <div className="max-h-[300px] overflow-auto">
-          {Object.entries(groupedModels).map(([provider, models]) => {
-            const filteredModels = models
-              .filter(model => {
-                if (tab === "hosted") return model.provider !== "ollama"
-                if (tab === "local") return model.provider === "ollama"
-                if (tab === "openrouter") return model.provider === "openrouter"
-              })
-              .filter(model =>
-                model.modelName.toLowerCase().includes(search.toLowerCase())
-              )
-              .sort((a, b) => a.provider.localeCompare(b.provider))
+            <div className="max-h-[300px] overflow-auto">
+              {Object.entries(groupedModels).map(([provider, models]) => {
+                const filteredModels = models
+                  .filter(model => {
+                    if (tab === "hosted") return model.provider !== "ollama"
+                    if (tab === "local") return model.provider === "ollama"
+                    if (tab === "openrouter")
+                      return model.provider === "openrouter"
+                  })
+                  .filter(model =>
+                    model.modelName
+                      .toLowerCase()
+                      .includes(search.toLowerCase())
+                  )
+                  .sort((a, b) => a.provider.localeCompare(b.provider))
 
-            if (filteredModels.length === 0) return null
+                if (filteredModels.length === 0) return null
 
-            return (
-              <div key={provider}>
-                <div className="mb-1 ml-2 text-xs font-bold tracking-wide opacity-50">
-                  {provider === "openai" && profile.use_azure_openai
-                    ? "AZURE OPENAI"
-                    : provider.toLocaleUpperCase()}
-                </div>
+                return (
+                  <div key={provider}>
+                    <div className="mb-1 ml-2 text-xs font-bold tracking-wide opacity-50">
+                      {provider === "openai" && profile.use_azure_openai
+                        ? "AZURE OPENAI"
+                        : provider.toLocaleUpperCase()}
+                    </div>
 
-                <div className="mb-4">
-                  {filteredModels.map(model => {
+                    <div className="mb-4">
+                      {filteredModels.map(model => {
+                        return (
+                          <div
+                            key={model.modelId}
+                            className="flex items-center space-x-1"
+                          >
+                            {selectedModelId === model.modelId && (
+                              <IconCheck className="ml-2" size={32} />
+                            )}
+
+                            <ModelOption
+                              key={model.modelId}
+                              model={model}
+                              onSelect={() => handleSelectModel(model.modelId)}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="local">
+            <Tabs
+              value={localTab}
+              onValueChange={(value: any) => setLocalTab(value)}
+            >
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="select">Select</TabsTrigger>
+                <TabsTrigger value="manage">Manage</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="select">
+                <Input
+                  ref={inputRef}
+                  className="w-full"
+                  placeholder="Search models..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+
+                <div className="max-h-[300px] overflow-auto">
+                  {Object.entries(groupedModels).map(([provider, models]) => {
+                    const filteredModels = models
+                      .filter(model => {
+                        if (tab === "hosted") return model.provider !== "ollama"
+                        if (tab === "local") return model.provider === "ollama"
+                        if (tab === "openrouter")
+                          return model.provider === "openrouter"
+                      })
+                      .filter(model =>
+                        model.modelName
+                          .toLowerCase()
+                          .includes(search.toLowerCase())
+                      )
+                      .sort((a, b) => a.provider.localeCompare(b.provider))
+
+                    if (filteredModels.length === 0) return null
+
                     return (
-                      <div
-                        key={model.modelId}
-                        className="flex items-center space-x-1"
-                      >
-                        {selectedModelId === model.modelId && (
-                          <IconCheck className="ml-2" size={32} />
-                        )}
+                      <div key={provider}>
+                        <div className="mb-1 ml-2 text-xs font-bold tracking-wide opacity-50">
+                          {provider === "openai" && profile.use_azure_openai
+                            ? "AZURE OPENAI"
+                            : provider.toLocaleUpperCase()}
+                        </div>
 
-                        <ModelOption
-                          key={model.modelId}
-                          model={model}
-                          onSelect={() => handleSelectModel(model.modelId)}
-                        />
+                        <div className="mb-4">
+                          {filteredModels.map(model => {
+                            return (
+                              <div
+                                key={model.modelId}
+                                className="flex items-center space-x-1"
+                              >
+                                {selectedModelId === model.modelId && (
+                                  <IconCheck className="ml-2" size={32} />
+                                )}
+
+                                <ModelOption
+                                  key={model.modelId}
+                                  model={model}
+                                  onSelect={() =>
+                                    handleSelectModel(model.modelId)
+                                  }
+                                />
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              </TabsContent>
+
+              <TabsContent value="manage">
+                <OllamaManageModels />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+        </Tabs>
       </DropdownMenuContent>
     </DropdownMenu>
   )

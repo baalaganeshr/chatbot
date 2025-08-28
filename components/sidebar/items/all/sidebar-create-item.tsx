@@ -7,24 +7,10 @@ import {
   SheetTitle
 } from "@/components/ui/sheet"
 import { ChatbotUIContext } from "@/context/context"
-import { createAssistantCollections } from "@/db/assistant-collections"
-import { createAssistantFiles } from "@/db/assistant-files"
-import { createAssistantTools } from "@/db/assistant-tools"
-import { createAssistant, updateAssistant } from "@/db/assistants"
-import { createChat } from "@/db/chats"
-import { createCollectionFiles } from "@/db/collection-files"
-import { createCollection } from "@/db/collections"
-import { createFileBasedOnExtension } from "@/db/files"
-import { createModel } from "@/db/models"
-import { createPreset } from "@/db/presets"
-import { createPrompt } from "@/db/prompts"
 import {
-  getAssistantImageFromStorage,
-  uploadAssistantImage
-} from "@/db/storage/assistant-images"
-import { createTool } from "@/db/tools"
-import { convertBlobToBase64 } from "@/lib/blob-to-b64"
-import { Tables, TablesInsert } from "@/supabase/types"
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { ContentType } from "@/types"
 import { FC, useContext, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -54,7 +40,6 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
     setFiles,
     setCollections,
     setAssistants,
-    setAssistantImages,
     setTools,
     setModels
   } = useContext(ChatbotUIContext)
@@ -64,113 +49,94 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
   const [creating, setCreating] = useState(false)
 
   const createFunctions = {
-    chats: createChat,
-    presets: createPreset,
-    prompts: createPrompt,
-    files: async (
-      createState: { file: File } & TablesInsert<"files">,
-      workspaceId: string
-    ) => {
-      if (!selectedWorkspace) return
-
-      const { file, ...rest } = createState
-
-      const createdFile = await createFileBasedOnExtension(
-        file,
-        rest,
-        workspaceId,
-        selectedWorkspace.embeddings_provider as "openai" | "local"
-      )
-
-      return createdFile
-    },
-    collections: async (
-      createState: {
-        image: File
-        collectionFiles: TablesInsert<"collection_files">[]
-      } & Tables<"collections">,
-      workspaceId: string
-    ) => {
-      const { collectionFiles, ...rest } = createState
-
-      const createdCollection = await createCollection(rest, workspaceId)
-
-      const finalCollectionFiles = collectionFiles.map(collectionFile => ({
-        ...collectionFile,
-        collection_id: createdCollection.id
-      }))
-
-      await createCollectionFiles(finalCollectionFiles)
-
-      return createdCollection
-    },
-    assistants: async (
-      createState: {
-        image: File
-        files: Tables<"files">[]
-        collections: Tables<"collections">[]
-        tools: Tables<"tools">[]
-      } & Tables<"assistants">,
-      workspaceId: string
-    ) => {
-      const { image, files, collections, tools, ...rest } = createState
-
-      const createdAssistant = await createAssistant(rest, workspaceId)
-
-      let updatedAssistant = createdAssistant
-
-      if (image) {
-        const filePath = await uploadAssistantImage(createdAssistant, image)
-
-        updatedAssistant = await updateAssistant(createdAssistant.id, {
-          image_path: filePath
-        })
-
-        const url = (await getAssistantImageFromStorage(filePath)) || ""
-
-        if (url) {
-          const response = await fetch(url)
-          const blob = await response.blob()
-          const base64 = await convertBlobToBase64(blob)
-
-          setAssistantImages(prev => [
-            ...prev,
-            {
-              assistantId: updatedAssistant.id,
-              path: filePath,
-              base64,
-              url
-            }
-          ])
-        }
+    chats: (createState: any, workspaceId: string) => {
+      const newChat = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
       }
-
-      const assistantFiles = files.map(file => ({
-        user_id: rest.user_id,
-        assistant_id: createdAssistant.id,
-        file_id: file.id
-      }))
-
-      const assistantCollections = collections.map(collection => ({
-        user_id: rest.user_id,
-        assistant_id: createdAssistant.id,
-        collection_id: collection.id
-      }))
-
-      const assistantTools = tools.map(tool => ({
-        user_id: rest.user_id,
-        assistant_id: createdAssistant.id,
-        tool_id: tool.id
-      }))
-
-      await createAssistantFiles(assistantFiles)
-      await createAssistantCollections(assistantCollections)
-      await createAssistantTools(assistantTools)
-
-      return updatedAssistant
+      const chats = getFromLocalStorage("chats") || []
+      setInLocalStorage("chats", [...chats, newChat])
+      return newChat
     },
-    tools: createTool,
-    models: createModel
+    presets: (createState: any, workspaceId: string) => {
+      const newPreset = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const presets = getFromLocalStorage("presets") || []
+      setInLocalStorage("presets", [...presets, newPreset])
+      return newPreset
+    },
+    prompts: (createState: any, workspaceId: string) => {
+      const newPrompt = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const prompts = getFromLocalStorage("prompts") || []
+      setInLocalStorage("prompts", [...prompts, newPrompt])
+      return newPrompt
+    },
+    files: (createState: any, workspaceId: string) => {
+      const newFile = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const files = getFromLocalStorage("files") || []
+      setInLocalStorage("files", [...files, newFile])
+      return newFile
+    },
+    collections: (createState: any, workspaceId: string) => {
+      const newCollection = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const collections = getFromLocalStorage("collections") || []
+      setInLocalStorage("collections", [...collections, newCollection])
+      return newCollection
+    },
+    assistants: (createState: any, workspaceId: string) => {
+      const newAssistant = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const assistants = getFromLocalStorage("assistants") || []
+      setInLocalStorage("assistants", [...assistants, newAssistant])
+      return newAssistant
+    },
+    tools: (createState: any, workspaceId: string) => {
+      const newTool = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const tools = getFromLocalStorage("tools") || []
+      setInLocalStorage("tools", [...tools, newTool])
+      return newTool
+    },
+    models: (createState: any, workspaceId: string) => {
+      const newModel = {
+        ...createState,
+        id: crypto.randomUUID(),
+        user_id: "local",
+        workspace_id: workspaceId
+      }
+      const models = getFromLocalStorage("models") || []
+      setInLocalStorage("models", [...models, newModel])
+      return newModel
+    }
   }
 
   const stateUpdateFunctions = {

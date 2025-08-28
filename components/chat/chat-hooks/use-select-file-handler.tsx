@@ -1,9 +1,13 @@
 import { ChatbotUIContext } from "@/context/context"
-import { createDocXFile, createFile } from "@/db/files"
+import {
+  getFromLocalStorage,
+  setInLocalStorage
+} from "@/lib/local-storage"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import mammoth from "mammoth"
 import { useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { v4 as uuidv4 } from "uuid"
 
 export const ACCEPTED_FILE_TYPES = [
   "text/csv",
@@ -70,68 +74,20 @@ export const useSelectFileHandler = () => {
           simplifiedFileType = "docx"
         }
 
-        setNewMessageFiles(prev => [
-          ...prev,
-          {
-            id: "loading",
-            name: file.name,
-            type: simplifiedFileType,
-            file: file
-          }
-        ])
-
-        // Handle docx files
-        if (
-          file.type.includes(
-            "vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-              "docx"
-          )
-        ) {
-          const arrayBuffer = await file.arrayBuffer()
-          const result = await mammoth.extractRawText({
-            arrayBuffer
-          })
-
-          const createdFile = await createDocXFile(
-            result.value,
-            file,
-            {
-              user_id: profile.user_id,
-              description: "",
-              file_path: "",
-              name: file.name,
-              size: file.size,
-              tokens: 0,
-              type: simplifiedFileType
-            },
-            selectedWorkspace.id,
-            chatSettings.embeddingsProvider
-          )
-
-          setFiles(prev => [...prev, createdFile])
-
-          setNewMessageFiles(prev =>
-            prev.map(item =>
-              item.id === "loading"
-                ? {
-                    id: createdFile.id,
-                    name: createdFile.name,
-                    type: createdFile.type,
-                    file: file
-                  }
-                : item
-            )
-          )
-
-          reader.onloadend = null
-
-          return
-        } else {
-          // Use readAsArrayBuffer for PDFs and readAsText for other types
-          file.type.includes("pdf")
-            ? reader.readAsArrayBuffer(file)
-            : reader.readAsText(file)
+        const newFile = {
+          id: uuidv4(),
+          name: file.name,
+          type: simplifiedFileType,
+          file: file
         }
+
+        setNewMessageFiles(prev => [...prev, newFile])
+
+        const files = getFromLocalStorage("files") || []
+        setInLocalStorage("files", [...files, newFile])
+        setFiles((prev: any) => [...prev, newFile])
+
+        return
       } else {
         throw new Error("Unsupported file type")
       }
@@ -153,36 +109,6 @@ export const useSelectFileHandler = () => {
                 file
               }
             ])
-          } else {
-            const createdFile = await createFile(
-              file,
-              {
-                user_id: profile.user_id,
-                description: "",
-                file_path: "",
-                name: file.name,
-                size: file.size,
-                tokens: 0,
-                type: simplifiedFileType
-              },
-              selectedWorkspace.id,
-              chatSettings.embeddingsProvider
-            )
-
-            setFiles(prev => [...prev, createdFile])
-
-            setNewMessageFiles(prev =>
-              prev.map(item =>
-                item.id === "loading"
-                  ? {
-                      id: createdFile.id,
-                      name: createdFile.name,
-                      type: createdFile.type,
-                      file: file
-                    }
-                  : item
-              )
-            )
           }
         } catch (error: any) {
           toast.error("Failed to upload. " + error?.message, {
