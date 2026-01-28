@@ -388,7 +388,7 @@ export const useChatHandler = () => {
 
     setChatMessages(filteredChatMessages)
 
-    handleSendMessage(editedContent, filteredChatMessages, false)
+    handleSendMessage(editedContent, filteredChatMessages, true)
   }
 
   return {
